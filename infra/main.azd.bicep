@@ -33,8 +33,24 @@ param allowedEmailDomain string = 'microsoft.com'
 @description('String flag read from azd env that determines whether backend auth is disabled.')
 param disableAuthSetting string = 'false'
 
+@description('Enable fully private networking between Container Apps and Cosmos DB (VNet + private endpoint).')
+param secureCosmosConnectivity bool = true
+
+@description('CIDR for the secure VNet when secureCosmosConnectivity is enabled.')
+param vnetAddressPrefix string = '10.90.0.0/16'
+
+@description('CIDR for the Container Apps infrastructure subnet when secureCosmosConnectivity is enabled (must be /23 or larger).')
+param containerAppsSubnetPrefix string = '10.90.0.0/23'
+
+@description('CIDR for the private endpoint subnet when secureCosmosConnectivity is enabled.')
+param privateEndpointSubnetPrefix string = '10.90.2.0/24'
+
+@description('Optional Entra ID object ID for a developer that should get Cosmos DB data-plane roles in secure mode.')
+param localDeveloperObjectId string = ''
+
 var effectiveTenantId = !empty(aadTenantId) ? aadTenantId : tenant().tenantId
 var authDisabled = toLower(disableAuthSetting) == 'true'
+var secureCosmos = secureCosmosConnectivity
 
 // Tags to apply to all resources
 var tags = {
@@ -70,18 +86,6 @@ module openai './modules/openai.bicep' = {
   }
 }
 
-// Cosmos DB with containers
-module cosmosdb './modules/cosmosdb.bicep' = {
-  scope: rg
-  name: 'cosmosdb-deployment'
-  params: {
-    location: location
-    baseName: baseName
-    environmentName: environmentName
-    tags: tags
-  }
-}
-
 // Container Registry
 module acr './modules/container-registry.bicep' = {
   scope: rg
@@ -106,6 +110,36 @@ module logAnalytics './modules/log-analytics.bicep' = {
   }
 }
 
+// Network resources for secure deployments
+module network './modules/network.bicep' = if (secureCosmos) {
+  scope: rg
+  name: 'network-deployment'
+  params: {
+    location: location
+    baseName: baseName
+    environmentName: environmentName
+    tags: tags
+    addressPrefix: vnetAddressPrefix
+    containerAppsSubnetPrefix: containerAppsSubnetPrefix
+    privateEndpointSubnetPrefix: privateEndpointSubnetPrefix
+  }
+}
+
+// Cosmos DB with containers
+module cosmosdb './modules/cosmosdb.bicep' = {
+  scope: rg
+  name: 'cosmosdb-deployment'
+  params: {
+    location: location
+    baseName: baseName
+    environmentName: environmentName
+    tags: tags
+    enablePrivateEndpoint: secureCosmos
+    privateEndpointSubnetId: secureCosmos ? network!.outputs.privateEndpointSubnetId : ''
+    privateDnsZoneId: secureCosmos ? network!.outputs.privateDnsZoneId : ''
+  }
+}
+
 // Container Apps Environment
 module containerAppsEnv './modules/container-apps-environment.bicep' = {
   scope: rg
@@ -116,6 +150,40 @@ module containerAppsEnv './modules/container-apps-environment.bicep' = {
     environmentName: environmentName
     logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
     tags: tags
+    infrastructureSubnetId: secureCosmos ? network!.outputs.containerAppsSubnetId : ''
+  }
+}
+
+// Managed identity for secure Container Apps deployment
+module appIdentity './modules/managed-identity.bicep' = if (secureCosmos) {
+  scope: rg
+  name: 'app-identity'
+  params: {
+    location: location
+    name: '${baseName}-apps-mi'
+    tags: tags
+  }
+}
+
+// Cosmos DB data-plane roles for managed identity
+module appCosmosRoles './modules/cosmos-roles.bicep' = if (secureCosmos) {
+  scope: rg
+  name: 'app-cosmos-roles'
+  params: {
+    cosmosDbAccountName: cosmosdb.outputs.accountName
+    principalId: appIdentity!.outputs.principalId
+    roleAssignmentSalt: 'app'
+  }
+}
+
+// Optional Cosmos DB role assignment for a developer
+module devCosmosRoles './modules/cosmos-roles.bicep' = if (secureCosmos && !empty(localDeveloperObjectId)) {
+  scope: rg
+  name: 'developer-cosmos-roles'
+  params: {
+    cosmosDbAccountName: cosmosdb.outputs.accountName
+    principalId: localDeveloperObjectId
+    roleAssignmentSalt: 'localdev'
   }
 }
 
@@ -130,8 +198,11 @@ module mcpService './modules/mcp-service.bicep' = {
     containerAppsEnvironmentId: containerAppsEnv.outputs.environmentId
     containerRegistryName: acr.outputs.registryName
     cosmosDbEndpoint: cosmosdb.outputs.endpoint
-    cosmosDbKey: cosmosdb.outputs.primaryKey
+    cosmosDbKey: secureCosmos ? '' : cosmosdb.outputs.primaryKey
     cosmosDbName: cosmosdb.outputs.databaseName
+    cosmosContainerName: cosmosdb.outputs.agentStateContainer
+    useCosmosManagedIdentity: secureCosmos
+    userAssignedIdentityResourceId: secureCosmos ? appIdentity!.outputs.resourceId : ''
     imageName: mcpImageName
     tags: tags
   }
@@ -147,6 +218,12 @@ module application './modules/application.bicep' = {
     baseName: baseName
     containerAppsEnvironmentId: containerAppsEnv.outputs.environmentId
     containerRegistryName: acr.outputs.registryName
+    cosmosDbEndpoint: cosmosdb.outputs.endpoint
+    cosmosDbName: cosmosdb.outputs.databaseName
+    cosmosStateContainerName: cosmosdb.outputs.agentStateContainer
+    cosmosDbKey: secureCosmos ? '' : cosmosdb.outputs.primaryKey
+    useCosmosManagedIdentity: secureCosmos
+    userAssignedIdentityResourceId: secureCosmos ? appIdentity!.outputs.resourceId : ''
     azureOpenAIEndpoint: openai.outputs.endpoint
     azureOpenAIKey: openai.outputs.key
     azureOpenAIDeploymentName: openai.outputs.chatDeploymentName
@@ -173,6 +250,7 @@ output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = openai.outputs.embeddingDeploy
 
 output AZURE_COSMOS_ENDPOINT string = cosmosdb.outputs.endpoint
 output AZURE_COSMOS_DATABASE_NAME string = cosmosdb.outputs.databaseName
+output AZURE_COSMOS_CONTAINER_NAME string = cosmosdb.outputs.agentStateContainer
 
 output AZURE_CONTAINER_REGISTRY_NAME string = acr.outputs.registryName
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = acr.outputs.loginServer

@@ -5,6 +5,9 @@ param environmentName string
 param logAnalyticsWorkspaceId string
 param tags object
 
+@description('Optional subnet resource ID for VNet-integrated Container Apps environments')
+param infrastructureSubnetId string = ''
+
 var envName = '${baseName}-${environmentName}-ca-env'
 
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -18,7 +21,10 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-05-01'
         sharedKey: listKeys(logAnalyticsWorkspaceId, '2022-10-01').primarySharedKey
       }
     }
-    zoneRedundant: false
+      zoneRedundant: false
+      vnetConfiguration: empty(infrastructureSubnetId) ? null : {
+        infrastructureSubnetId: infrastructureSubnetId
+      }
   }
   tags: tags
 }

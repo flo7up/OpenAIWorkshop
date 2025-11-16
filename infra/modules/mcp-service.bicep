@@ -6,8 +6,14 @@ param containerAppsEnvironmentId string
 param containerRegistryName string
 param cosmosDbEndpoint string
 @secure()
-param cosmosDbKey string
+param cosmosDbKey string = ''
 param cosmosDbName string
+@description('Cosmos DB container name that stores MCP state')
+param cosmosContainerName string = 'workshop_agent_state_store'
+@description('Set to true to rely on managed identity for Cosmos DB access')
+param useCosmosManagedIdentity bool = false
+@description('Optional user-assigned managed identity resource ID attached to the MCP container app')
+param userAssignedIdentityResourceId string = ''
 param tags object
 
 @description('Container image tag')
@@ -22,6 +28,36 @@ var azdTags = union(tags, {
   'azd-service-name': 'mcp'
   'azd-service-type': 'containerapp'
 })
+var cosmosSecrets = (!useCosmosManagedIdentity && !empty(cosmosDbKey)) ? [
+  {
+    name: 'cosmosdb-key'
+    value: cosmosDbKey
+  }
+] : []
+
+var cosmosEnvSettings = concat([
+  {
+    name: 'COSMOSDB_ENDPOINT'
+    value: cosmosDbEndpoint
+  }
+  {
+    name: 'COSMOS_DB_NAME'
+    value: cosmosDbName
+  }
+  {
+    name: 'COSMOS_CONTAINER_NAME'
+    value: cosmosContainerName
+  }
+  {
+    name: 'COSMOS_USE_MANAGED_IDENTITY'
+    value: string(useCosmosManagedIdentity)
+  }
+], (!useCosmosManagedIdentity && !empty(cosmosDbKey)) ? [
+  {
+    name: 'COSMOSDB_KEY'
+    secretRef: 'cosmosdb-key'
+  }
+] : [])
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
   name: containerRegistryName
@@ -30,6 +66,12 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-pr
 resource mcpService 'Microsoft.App/containerApps@2023-05-01' = {
   name: mcpServiceName
   location: location
+  identity: (useCosmosManagedIdentity && !empty(userAssignedIdentityResourceId)) ? {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentityResourceId}': {}
+    }
+  } : null
   properties: {
     managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
@@ -46,16 +88,12 @@ resource mcpService 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'registry-password'
         }
       ]
-      secrets: [
+      secrets: concat([
         {
           name: 'registry-password'
           value: containerRegistry.listCredentials().passwords[0].value
         }
-        {
-          name: 'cosmosdb-key'
-          value: cosmosDbKey
-        }
-      ]
+      ], cosmosSecrets)
     }
     template: {
       containers: [
@@ -66,24 +104,7 @@ resource mcpService 'Microsoft.App/containerApps@2023-05-01' = {
             cpu: json('0.5')
             memory: '1Gi'
           }
-          env: [
-            {
-              name: 'COSMOSDB_ENDPOINT'
-              value: cosmosDbEndpoint
-            }
-            {
-              name: 'COSMOSDB_KEY'
-              secretRef: 'cosmosdb-key'
-            }
-            {
-              name: 'COSMOS_DB_NAME'
-              value: cosmosDbName
-            }
-            {
-              name: 'COSMOS_CONTAINER_NAME'
-              value: 'workshop_agent_state_store'
-            }
-          ]
+          env: cosmosEnvSettings
         }
       ]
       scale: {

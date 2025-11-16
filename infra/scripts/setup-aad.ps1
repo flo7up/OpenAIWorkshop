@@ -144,6 +144,7 @@ function Get-ContainerAppRedirectUris {
     }
 }
 
+
 $environmentName = Get-AzdEnvValue 'AZURE_ENV_NAME'
 if (-not $environmentName) {
     $environmentName = 'openaiworkshop'

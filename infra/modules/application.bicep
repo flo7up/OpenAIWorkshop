@@ -11,6 +11,25 @@ param containerAppsEnvironmentId string
 @description('Container Registry name')
 param containerRegistryName string
 
+@description('Cosmos DB endpoint for agent state persistence')
+param cosmosDbEndpoint string = ''
+
+@description('Cosmos DB database name for agent state persistence')
+param cosmosDbName string = ''
+
+@description('Cosmos DB container name for agent state persistence')
+param cosmosStateContainerName string = ''
+
+@description('Cosmos DB primary key (used when managed identity is disabled)')
+@secure()
+param cosmosDbKey string = ''
+
+@description('Set to true to rely on managed identity for Cosmos DB access')
+param useCosmosManagedIdentity bool = false
+
+@description('Optional user-assigned managed identity resource ID attached to the container app')
+param userAssignedIdentityResourceId string = ''
+
 @description('Azure OpenAI endpoint URL')
 param azureOpenAIEndpoint string
 
@@ -60,6 +79,42 @@ var azdTags = union(tags, {
 var effectiveTenantId = !empty(aadTenantId) ? aadTenantId : tenant().tenantId
 var apiAudience = aadApiAudience
 var aadAuthority = !empty(effectiveTenantId) ? '${environment().authentication.loginEndpoint}${effectiveTenantId}' : ''
+var cosmosSecretEntries = (!useCosmosManagedIdentity && !empty(cosmosDbKey)) ? [
+  {
+    name: 'cosmosdb-key'
+    value: cosmosDbKey
+  }
+] : []
+
+var cosmosEndpointEnv = !empty(cosmosDbEndpoint) ? [
+  {
+    name: 'COSMOSDB_ENDPOINT'
+    value: cosmosDbEndpoint
+  }
+] : []
+
+var cosmosDbNameEnv = !empty(cosmosDbName) ? [
+  {
+    name: 'COSMOS_DB_NAME'
+    value: cosmosDbName
+  }
+] : []
+
+var cosmosContainerEnv = !empty(cosmosStateContainerName) ? [
+  {
+    name: 'COSMOS_CONTAINER_NAME'
+    value: cosmosStateContainerName
+  }
+] : []
+
+var cosmosKeyEnv = (!useCosmosManagedIdentity && !empty(cosmosDbKey)) ? [
+  {
+    name: 'COSMOSDB_KEY'
+    secretRef: 'cosmosdb-key'
+  }
+] : []
+
+var cosmosEnvSettings = concat(cosmosEndpointEnv, cosmosDbNameEnv, cosmosContainerEnv)
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
   name: containerRegistryName
@@ -68,6 +123,12 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-pr
 resource application 'Microsoft.App/containerApps@2023-05-01' = {
   name: appName
   location: location
+  identity: empty(userAssignedIdentityResourceId) ? null : {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentityResourceId}': {}
+    }
+  }
   properties: {
     managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
@@ -90,7 +151,7 @@ resource application 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'registry-password'
         }
       ]
-      secrets: [
+      secrets: concat([
         {
           name: 'registry-password'
           value: containerRegistry.listCredentials().passwords[0].value
@@ -99,7 +160,7 @@ resource application 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'azure-openai-key'
           value: azureOpenAIKey
         }
-      ]
+      ], cosmosSecretEntries)
     }
     template: {
       containers: [
@@ -110,7 +171,7 @@ resource application 'Microsoft.App/containerApps@2023-05-01' = {
             cpu: json('1.0')
             memory: '2Gi'
           }
-          env: [
+          env: concat([
             {
               name: 'AZURE_OPENAI_ENDPOINT'
               value: azureOpenAIEndpoint
@@ -138,6 +199,11 @@ resource application 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'MCP_SERVER_URI'
               value: mcpServiceUrl
+            }
+          ], cosmosEnvSettings, cosmosKeyEnv, [
+            {
+              name: 'COSMOS_USE_MANAGED_IDENTITY'
+              value: string(useCosmosManagedIdentity)
             }
             {
               name: 'DISABLE_AUTH'
@@ -191,7 +257,7 @@ resource application 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'ALLOWED_EMAIL_DOMAIN'
               value: allowedEmailDomain
             }
-          ]
+          ])
         }
       ]
       scale: {

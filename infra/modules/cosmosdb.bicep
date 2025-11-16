@@ -4,6 +4,18 @@ param baseName string
 param environmentName string
 param tags object
 
+@description('Enable private endpoint + private DNS (disables public network access)')
+param enablePrivateEndpoint bool = false
+
+@description('Subnet resource ID used for the Cosmos DB private endpoint')
+param privateEndpointSubnetId string = ''
+
+@description('Private DNS zone resource ID for privatelink.documents.azure.com')
+param privateDnsZoneId string = ''
+
+var agentStateContainerName = 'workshop_agent_state_store'
+
+
 var cosmosDbName = '${baseName}-${environmentName}-cosmos'
 var databaseName = 'contoso'
 
@@ -29,6 +41,7 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
         name: 'EnableNoSQLVectorSearch'
       }
     ]
+    publicNetworkAccess: enablePrivateEndpoint ? 'Disabled' : 'Enabled'
   }
   tags: tags
 }
@@ -110,10 +123,10 @@ resource promotionsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases
 // Agent State Store container
 resource agentStateContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
   parent: database
-  name: 'workshop_agent_state_store'
+  name: agentStateContainerName
   properties: {
     resource: {
-      id: 'workshop_agent_state_store'
+      id: agentStateContainerName
       partitionKey: {
         paths: ['/session_id']
         kind: 'Hash'
@@ -122,7 +135,50 @@ resource agentStateContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases
   }
 }
 
+// Private endpoint & DNS configuration
+var privateEndpointName = '${cosmosDbName}-pe'
+var privateDnsZoneGroupName = 'cosmosdb-zone-group'
+
+resource cosmosPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-05-01' = if (enablePrivateEndpoint) {
+  name: privateEndpointName
+  location: location
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: 'cosmosdb'
+        properties: {
+          privateLinkServiceId: cosmosDb.id
+          groupIds: [
+            'Sql'
+          ]
+        }
+      }
+    ]
+    subnet: {
+      id: privateEndpointSubnetId
+    }
+  }
+  tags: tags
+}
+
+resource cosmosPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = if (enablePrivateEndpoint) {
+  parent: cosmosPrivateEndpoint
+  name: privateDnsZoneGroupName
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'documents'
+        properties: {
+          privateDnsZoneId: privateDnsZoneId
+        }
+      }
+    ]
+  }
+}
+
 output endpoint string = cosmosDb.properties.documentEndpoint
+@secure()
 output primaryKey string = cosmosDb.listKeys().primaryMasterKey
 output databaseName string = databaseName
 output accountName string = cosmosDb.name
+output agentStateContainer string = agentStateContainerName

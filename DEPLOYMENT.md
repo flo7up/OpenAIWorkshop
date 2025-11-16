@@ -248,6 +248,33 @@ az deployment sub create `
   --name "workshop-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 ```
 
+#### Secure Cosmos DB + Container Apps deployment
+
+The templates can lock Cosmos DB behind a private endpoint and run both Container Apps inside a VNet-injected environment. In secure mode the infrastructure automatically creates:
+
+- A dedicated VNet with separate subnets for Container Apps infrastructure and private endpoints.
+- A user-assigned managed identity that Container Apps use to authenticate to Cosmos DB (no secrets in `azd` outputs).
+- Private DNS zone wiring plus a Cosmos DB private endpoint, so traffic never leaves the virtual network.
+- Cosmos DB data-plane role assignments for the managed identity and the local developer object ID captured during `preprovision`.
+
+Secure mode is **enabled by default**. Use these environment values to customize or disable it when needed:
+
+```powershell
+# Optional: override defaults before running azd up
+azd env set SECURE_COSMOS_CONNECTIVITY true            # set to false to fall back to public access
+azd env set SECURE_VNET_ADDRESS_PREFIX 10.90.0.0/16    # VNet CIDR
+azd env set SECURE_CONTAINERAPPS_SUBNET_PREFIX 10.90.0.0/23   # must be /23 or larger
+azd env set SECURE_PRIVATE_ENDPOINT_SUBNET_PREFIX 10.90.2.0/24
+```
+
+Because Cosmos DB public networking is disabled, make sure your signed-in Azure CLI account is recorded in the environment so it receives RBAC access. The `azd` pre-provision hook already runs the helper, but you can invoke it manually at any time:
+
+```powershell
+pwsh ./infra/scripts/setup-local-developer.ps1
+```
+
+After setting any overrides, run `azd up` (or `azd provision`) as usual. If you switch between secure and public modes, it’s safest to run `azd down --force` first so the subnet sizes and private endpoints can be recreated without conflict.
+
 ### Step 4: Build and Push Docker Images
 
 **Note:** Skip this step if using `azd up` or `./deploy.ps1` - they handle this automatically.
@@ -335,6 +362,7 @@ The script sets/updates these environment values:
 | `AAD_API_SCOPE` | Fully qualified scope (`api://.../user_impersonation`) |
 | `AAD_ALLOWED_DOMAIN` | Email domain allowed to sign in (defaults to `microsoft.com`) |
 | `DISABLE_AUTH` | `false` once auth is enabled |
+| `LOCAL_DEVELOPER_OBJECT_ID` | Object ID granted Cosmos DB data-plane access for secure deployments |
 
 Retrieve them any time with:
 
@@ -342,6 +370,7 @@ Retrieve them any time with:
 azd env get-value AAD_API_APP_ID
 azd env get-value AAD_FRONTEND_CLIENT_ID
 azd env get-value AAD_API_AUDIENCE
+azd env get-value LOCAL_DEVELOPER_OBJECT_ID
 ```
 
 ### 3. Grant SPA permissions
@@ -389,6 +418,20 @@ az containerapp logs show \
 ```
 
 Successful requests return `200 OK`. If you still see `JWT validation failed: Audience doesn't match`, rerun the script and redeploy to ensure the backend picked up the latest `AAD_API_AUDIENCE`.
+
+## Local developer Cosmos access
+
+Secure deployments disable public Cosmos DB networking, so your signed-in Azure CLI account must receive RBAC permissions for local tooling (data seeding, smoke tests, etc.). Run the helper to capture your Entra object ID in the azd environment:
+
+```powershell
+pwsh ./infra/scripts/setup-local-developer.ps1
+# or override manually
+pwsh ./infra/scripts/setup-local-developer.ps1 -ObjectId <aad-object-id>
+```
+
+The script sets `LOCAL_DEVELOPER_OBJECT_ID`, which the Bicep template uses to assign Cosmos DB data-plane roles. `azd up` executes this automatically through the pre-provision hook, but rerun it whenever you switch Azure accounts or need to grant access to a different developer.
+
+> **Note:** When overriding `SECURE_CONTAINERAPPS_SUBNET_PREFIX`, ensure the range is /23 or larger. Azure Container Apps rejects smaller subnets for VNet-injected environments.
 
 ## Post-Deployment Configuration
 
