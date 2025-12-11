@@ -1,0 +1,84 @@
+{
+  "checkpoint_id": "9dc484e4-06e2-4de7-bd96-f1015bbdb879",
+  "workflow_id": "994fac2c-2fe5-4091-bd13-3a8a730ac16e",
+  "timestamp": "2025-12-11T13:45:28.372028+00:00",
+  "messages": {
+    "location_analysis_executor": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:LocationAnalysisResult",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "analysis_type": "location",
+            "findings": "FINDINGS:\nCustomer Danielle Johnson (ID 1) has a loyalty Gold subscription with Contoso and an active internet service. Security logs show two recent events on 2025-04-17:\n- At 08:18:58 there was a login attempt.\n- At 10:35:58 the account was locked.\nHowever, the logs do not contain explicit information about login locations or country data, nor do they confirm the multi-country login event described (USA and Russia within 2 hours).\n\nBased on the alert, the claim is there were login attempts from the USA and Russia within 2 hours, which indicates impossible travel, a strong signal for suspicious activity or account compromise.\n\nRISK_INDICATORS:\n- Multi-country login attempts within a short timeframe (impossible travel scenario), specifically USA and Russia\n- Account lockout shortly after the login attempts, indicating possible detection of suspicious activity or brute force attempts\n- No explicit signs of VPN/proxy usage in logs, but multi-country access usually correlates with VPN/proxy or account sharing/fraud\n\nRISK_SCORE: 0.85\n\nThe high risk score is due to the severity of impossible travel and the account lock event. Further investigation or enhanced authentication measures for this customer are recommended.",
+            "risk_indicators": [
+              ""
+            ],
+            "risk_score": 0.85
+          }
+        },
+        "source_id": "location_analysis_executor",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ],
+    "usage_pattern_executor": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:UsageAnalysisResult",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "analysis_type": "usage_pattern",
+            "findings": "FINDINGS:\n- Customer Danielle Johnson has one active mobile subscription with a 300 Mbps speed tier and a data cap of 100 GB per month.\n- Subscription status and services are normal; roaming is disabled.\n- Payment history shows mostly successful payments with one partial and one failed payment recently.\n- Data usage records for the last 30 days reveal multiple days where data usage spikes significantly above an average daily usage of around 500 MB. Several days have data usage close to or exceeding 1 GB (e.g., 1081 MB on 2025-03-20, 1149 MB on 2025-03-26, 1145 MB on 2025-04-05).\n- Total monthly data usage would likely exceed the 100 GB cap if the pattern continues.\n- The alert for multi_country_login indicates high-severity risk with login attempts from USA and Russia within 2 hours, suggesting possible account compromise.\n- Roaming being disabled but logins occurring from different countries is inconsistent.\n- No service incidents reported, but billing issues and the login pattern raise concerns.\n\nRISK_INDICATORS:\n1. Multi-country login attempts (USA and Russia) within 2 hours while roaming is disabled.\n2. Multiple days with unusually high data usage significantly above typical usage for the subscription tier.\n3. Potential data cap breach risk due to sustained high data consumption.\n4. Recent partial and failed payments, possibly indicating customer financial issues or fraud.\n5. Inconsistency between physical subscription settings (no roaming) and apparent geographic usage patterns.\n\nRISK_SCORE: 0.85",
+            "risk_indicators": [
+              ""
+            ],
+            "risk_score": 0.85
+          }
+        },
+        "source_id": "usage_pattern_executor",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ],
+    "billing_charge_executor": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:BillingAnalysisResult",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "analysis_type": "billing",
+            "findings": "FINDINGS:\nThe customer Danielle Johnson (ID 1) holds an active Contoso Mobile Plan subscription with a 300 Mbps speed tier and 100 GB data cap. The subscription started on 2025-02-02 and is valid through 2026-02-02. The customer does not have roaming enabled and auto-pay is off.\n\nBilling summary shows a total due balance of $208.17, with three invoices containing outstanding balances:\n- Invoice #8: $63.47 outstanding, partially paid $34.75 via PayPal.\n- Invoice #10: $89.56 outstanding, partially paid $36.05 via Apple Pay.\n- Invoice #11: $55.14 outstanding, no successful payment (ACH payment failed).\n\nInvoice amounts vary from about $55 to $118. Several payments were successful via ACH, PayPal, and Apple Pay, but some partial payments and a failed payment are noted recently.\n\nNo service incidents are recorded on the subscription.\n\nOrders for this customer were not available to review for inconsistencies.\n\nRed flag alert exists for multi-country login activity from USA and Russia within 2 hours, which increases risk for fraudulent use of the account.\n\nNo unusual subscription changes, upgrades, or downgrades were noted. The monthly fee is consistent at $50 for the mobile plan, though invoice amounts vary due to usage or additional charges.\n\nRISK_INDICATORS:\n- Multi-country login attempts from USA and Russia within 2 hours, suggesting possible compromised credentials.\n- Multiple unpaid or partially paid invoices totaling over $200.\n- Recent failed payment attempt on an invoice.\n- Payment methods varied and include partial payments, which can indicate account instability or fraud.\n\nRISK_SCORE: 0.7\n\nThe activity and billing pattern present moderate to high risk, mainly driven by the multi-country login alert combined with outstanding invoice balances and payment irregularities. Further investigation and customer verification are recommended.",
+            "risk_indicators": [
+              ""
+            ],
+            "risk_score": 0.7
+          }
+        },
+        "source_id": "billing_charge_executor",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ]
+  },
+  "shared_state": {},
+  "executor_states": {
+    "analyst_review": {
+      "request_events": {}
+    }
+  },
+  "iteration_count": 1,
+  "max_iterations": 100,
+  "metadata": {
+    "superstep": 1,
+    "checkpoint_type": "superstep",
+    "graph_signature": "090ea8875c5f1dc29ed14dbfe394b502567e050efeaf756bae7b9b9bdac29faa"
+  },
+  "version": "1.0"
+}

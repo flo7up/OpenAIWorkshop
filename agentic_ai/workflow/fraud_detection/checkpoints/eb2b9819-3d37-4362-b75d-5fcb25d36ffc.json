@@ -1,0 +1,45 @@
+{
+  "checkpoint_id": "eb2b9819-3d37-4362-b75d-5fcb25d36ffc",
+  "workflow_id": "994fac2c-2fe5-4091-bd13-3a8a730ac16e",
+  "timestamp": "2025-12-11T13:45:33.184750+00:00",
+  "messages": {
+    "fraud_risk_aggregator": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:FraudRiskAssessment",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "overall_risk_score": 0.8,
+            "risk_level": "critical",
+            "recommended_action": "both",
+            "reasoning": "OVERALL_RISK_SCORE: 0.8  \nRISK_LEVEL: critical  \nRECOMMENDED_ACTION: both  \n\nREASONING:  \nAll three specialist agents report elevated risk scores pointing to the likelihood of fraud or account compromise. The usage pattern analyst (0.85) identifies suspicious multi-country login attempts (USA and Russia within 2 hours) despite roaming being disabled, indicating probable unauthorized access. They also note unusual data spikes that could breach the data cap and recent partial and failed payments, consistent with account misuse or financial trouble. The location analyst (0.85) confirms the impossible travel scenario, supported by an account lockout shortly after the suspicious logins, which strongly suggests detected fraudulent activity or credential compromise. The billing analyst (0.7) reports multiple unpaid and partially paid invoices totaling over $200 along with failed payments, compounding concerns about the account's financial stability and potential misuse.  \n\nTogether, these findings justify an overall risk score of 0.8, positioning the risk at the critical threshold. The combination of probable account takeover (impossible travel events), suspicious usage patterns, and billing irregularities necessitates immediate intervention. The recommended action is both to lock the account to prevent further fraudulent access and refund charges to reverse any potentially unauthorized transactions. This dual approach mitigates ongoing risk and protects the customer and Contoso from financial loss while further investigations and customer verification proceed.",
+            "analysis_summaries": [
+              "usage_pattern: 0.85",
+              "location: 0.85",
+              "billing: 0.7"
+            ]
+          }
+        },
+        "source_id": "fraud_risk_aggregator",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ]
+  },
+  "shared_state": {},
+  "executor_states": {
+    "analyst_review": {
+      "request_events": {}
+    }
+  },
+  "iteration_count": 2,
+  "max_iterations": 100,
+  "metadata": {
+    "superstep": 2,
+    "checkpoint_type": "superstep",
+    "graph_signature": "090ea8875c5f1dc29ed14dbfe394b502567e050efeaf756bae7b9b9bdac29faa"
+  },
+  "version": "1.0"
+}
