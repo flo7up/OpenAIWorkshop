@@ -1,0 +1,40 @@
+{
+  "checkpoint_id": "c02993c3-c948-4781-8605-4b1c88384d28",
+  "workflow_id": "994fac2c-2fe5-4091-bd13-3a8a730ac16e",
+  "timestamp": "2025-12-11T13:45:15.677939+00:00",
+  "messages": {
+    "alert_router": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:SuspiciousActivityAlert",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "alert_type": "multi_country_login",
+            "description": "Login attempts from USA and Russia within 2 hours",
+            "timestamp": "2025-12-11T14:44:21.069113",
+            "severity": "high"
+          }
+        },
+        "source_id": "alert_router",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ]
+  },
+  "shared_state": {},
+  "executor_states": {
+    "analyst_review": {
+      "request_events": {}
+    }
+  },
+  "iteration_count": 0,
+  "max_iterations": 100,
+  "metadata": {
+    "superstep": 0,
+    "checkpoint_type": "initial",
+    "graph_signature": "090ea8875c5f1dc29ed14dbfe394b502567e050efeaf756bae7b9b9bdac29faa"
+  },
+  "version": "1.0"
+}
