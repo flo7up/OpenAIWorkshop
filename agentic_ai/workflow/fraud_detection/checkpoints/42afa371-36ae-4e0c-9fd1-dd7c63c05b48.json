@@ -1,0 +1,53 @@
+{
+  "checkpoint_id": "42afa371-36ae-4e0c-9fd1-dd7c63c05b48",
+  "workflow_id": "4d4fb451-126c-43b3-95dc-c1c19ff25335",
+  "timestamp": "2026-01-21T20:02:50.837839+00:00",
+  "messages": {
+    "review_gateway": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:AnalystReviewRequest",
+          "value": {
+            "request_id": "662c077f-3c9e-4263-a770-75077b3be203",
+            "source_executor_id": null,
+            "assessment": {
+              "__af_dataclass__": "fraud_detection_workflow:FraudRiskAssessment",
+              "value": {
+                "alert_id": "ALERT-001",
+                "customer_id": 1,
+                "overall_risk_score": 0.77,
+                "risk_level": "high",
+                "recommended_action": "lock_account",
+                "reasoning": "OVERALL_RISK_SCORE: 0.77  \nRISK_LEVEL: High  \nRECOMMENDED_ACTION: lock_account  \nREASONING:  \n\nThe synthesis of analysis results yields an overall risk score of 0.77, indicating a high risk level. This conclusion is drawn from the following indicators across all three analyses:\n\n1. **Usage Pattern Analysis (Score: 0.8)**: Detects a high severity alert due to the unusual multi-country login attempts from the USA and Russia within a short two-hour window. This activity is highly incongruous with the account settings, especially given the roaming is disabled, suggesting a possible breach of the account or unauthorized access through potential VPN misuse.\n\n2. **Location Analysis (Score: 0.8)**: Highlights multiple login attempts across different countries and an account lock soon after the logins. The presence of a locked account following questionable accesses insinuates a security measure triggered by possibly malicious activities. The location risk indicators align with the anomalous usage pattern findings.\n\n3. **Billing Analysis (Score: 0.7)**: While indicating a slightly lower score compared to others, the analysis detects outstanding invoices, which deviate from historical timeliness. Coupled with suspicious logins, this could suggest attempts to exploit the account financially before addressing outstanding bills or payments. This supports the notion of unauthorized access and potential account misuse.\n\nConsidering the converging evidence of suspected account compromise through erratic login behavior across global locations and the unusual billing anomalies, the risk level is deemed high. The recommended action is to lock the account, thereby preventing further unauthorized access until the situation can be thoroughly investigated and resolved. At this stage, refunding charges is not advised as there is insufficient evidence of financial fraud beyond payment behavior anomalies.",
+                "analysis_summaries": [
+                  "usage_pattern: 0.8",
+                  "location: 0.8",
+                  "billing: 0.7"
+                ]
+              }
+            },
+            "prompt": "Review fraud case for alert ALERT-001. Risk score: 0.77. Recommended action: lock_account"
+          }
+        },
+        "source_id": "review_gateway",
+        "target_id": "analyst_review",
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ]
+  },
+  "shared_state": {},
+  "executor_states": {
+    "analyst_review": {
+      "request_events": {}
+    }
+  },
+  "iteration_count": 3,
+  "max_iterations": 100,
+  "metadata": {
+    "superstep": 3,
+    "checkpoint_type": "superstep",
+    "graph_signature": "090ea8875c5f1dc29ed14dbfe394b502567e050efeaf756bae7b9b9bdac29faa"
+  },
+  "version": "1.0"
+}
