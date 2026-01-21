@@ -30,10 +30,15 @@ def get_db() -> sqlite3.Connection:
 # Safe OpenAI import / dummy embedding  
 try:  
     from openai import AzureOpenAI  
+    from azure.identity import AzureCliCredential, get_bearer_token_provider
   
+    # Use AAD-based authentication (keyless) for Azure AI Foundry
+    _credential = AzureCliCredential()
+    _token_provider = get_bearer_token_provider(_credential, "https://cognitiveservices.azure.com/.default")
+    
     _client = AzureOpenAI(  
-        api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),  
+        azure_ad_token_provider=_token_provider,  
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-01-preview"),  
         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),  
     )  
     _emb_model = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")  
@@ -43,7 +48,9 @@ try:
         text = text.replace("\n", " ")  
         return _client.embeddings.create(input=[text], model=_emb_model).data[0].embedding  
   
-except Exception:  
+except Exception as e:
+    import logging
+    logging.warning(f"Azure OpenAI embedding client not available: {e}")
     def get_embedding(text: str) -> List[float]:  
         """Fallback to zero vector when credentials are missing."""  
         return [0.0] * 1536  

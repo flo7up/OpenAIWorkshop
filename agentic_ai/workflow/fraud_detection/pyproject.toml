@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "azure-identity>=1.19.0",
     "fastapi==0.115.12",
     "agent-framework==1.0.0b251007",
     "fastmcp==2.7.1",

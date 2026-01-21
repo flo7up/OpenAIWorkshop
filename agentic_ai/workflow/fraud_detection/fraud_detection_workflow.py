@@ -909,27 +909,26 @@ async def create_fraud_detection_workflow(
 async def main() -> None:
     """Main console application."""
     # Load environment variables from .env file
+    from azure.identity import AzureCliCredential
 
     logger.info("=" * 80)
     logger.info("Contoso Fraud Detection & Escalation Workflow")
     logger.info("=" * 80)
 
-    # Load configuration
-    azure_openai_key = os.getenv("AZURE_OPENAI_API_KEY")
+    # Load configuration - now using AAD keyless auth
     azure_deployment = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     mcp_server_uri = os.getenv("MCP_SERVER_URI", "http://localhost:8000/mcp")
-    if not all([azure_openai_key, azure_deployment, azure_endpoint]):
+    if not all([azure_deployment, azure_endpoint]):
         logger.error("Missing required environment variables. Please set:")
-        logger.error("  AZURE_OPENAI_API_KEY")
         logger.error("  AZURE_OPENAI_CHAT_DEPLOYMENT")
         logger.error("  AZURE_OPENAI_ENDPOINT")
         logger.error("  MCP_SERVER_URI (optional, defaults to http://localhost:8000)")
         return
 
-    # Create Azure OpenAI client
+    # Create Azure OpenAI client with AAD auth (keyless)
     chat_client = AzureOpenAIChatClient(
-        api_key=azure_openai_key,
+        credential=AzureCliCredential(),
         deployment_name=azure_deployment,
         endpoint=azure_endpoint,
     )

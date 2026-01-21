@@ -1,0 +1,14 @@
+{
+  "name": "fraud-detection-demo",
+  "version": "1.0.0",
+  "description": "Fraud Detection Multi-Agent Demo with MCP",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File ./start.ps1",
+    "start": "powershell -ExecutionPolicy Bypass -File ./start.ps1",
+    "start:mcp": "cd mcp && uv run python mcp_service.py",
+    "start:backend": "cd agentic_ai/workflow/fraud_detection && uv run python backend.py",
+    "start:frontend": "cd agentic_ai/workflow/fraud_detection/ui && npm run dev"
+  },
+  "keywords": ["fraud-detection", "multi-agent", "mcp", "azure-ai"],
+  "license": "MIT"
+}
