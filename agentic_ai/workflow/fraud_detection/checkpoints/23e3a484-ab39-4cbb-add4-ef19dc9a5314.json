@@ -1,0 +1,84 @@
+{
+  "checkpoint_id": "23e3a484-ab39-4cbb-add4-ef19dc9a5314",
+  "workflow_id": "4d4fb451-126c-43b3-95dc-c1c19ff25335",
+  "timestamp": "2026-01-21T20:02:46.657452+00:00",
+  "messages": {
+    "location_analysis_executor": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:LocationAnalysisResult",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "analysis_type": "location",
+            "findings": "FINDINGS:\n- **Customer Details**: Danielle Johnson (Email: john21@example.net), associated with a Gold level loyalty and an active 300Mbps internet subscription.\n- **Suspicious Activity**: Two notable login attempts were detected, possibly originating from different countries (USA and Russia) within a short 2-hour window.\n- **Security Log Events**:\n  1. **Login Attempt**: Recorded on 2025-04-17 at 08:18:58. \n  2. **Account Locked**: Occurred on 2025-04-17 at 10:35:58, which could indicate multiple failed login attempts after the initial suspicious login, potentially triggering a security lock.\n  \nRISK_INDICATORS:\n- **Multiple Country Logins**: The alert describing login attempts from both the USA and Russia within two hours suggests potential account compromise or use of a VPN/proxy to disguise true access locations.\n- **Account Lock**: The locking of the account shortly after these logins indicates potentially malicious activity following these suspicious location-based access points.\n\nRISK_SCORE: 0.8",
+            "risk_indicators": [
+              ""
+            ],
+            "risk_score": 0.8
+          }
+        },
+        "source_id": "location_analysis_executor",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ],
+    "usage_pattern_executor": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:UsageAnalysisResult",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "analysis_type": "usage_pattern",
+            "findings": "FINDINGS:\n1. **Customer Profile**:\n   - Name: Danielle Johnson\n   - Loyalty Level: Gold\n   - Address: Melanieview, AS\n   - Active Subscription: Contoso Mobile Plan (300Mbps Speed Tier, 100GB Data Cap)\n\n2. **Subscription Details**:\n   - Status: Active\n   - Roaming Disabled, meaning usage in other countries without enabling roaming is unusual.\n   - No service incidents reported, suggesting consistent service quality.\n\n3. **Recent Data Usage**:\n   - [Data Usage Details Unavailable]: Unfortunately, data usage details were not retrieved successfully so we cannot perform deeper analysis on usage volume for spikes or inconsistencies.\n\n4. **Anomalous Activity Detected**:\n   - High Severity Alert for multi-country login within 2 hours from USA and Russia.\n   - Roaming feature is disabled in subscription, hence overseas usage should not occur.\n\nRISK_INDICATORS:\n- High severity alert of login across countries within 2 hours.\n- Roaming disabled, suggesting all data activity should be within subscribed country.\n- Subscription data cap set at 100GB, without data usage for analysis, it is unclear if this cap is exceeded, but potential for erratic usage exists given the cross-country logins.\n\nRISK_SCORE: 0.8\n\n*Note: The risk score accounts for severe alert with potentially fraudulent cross-country login, absence of roaming access conflicting with login activity, and inability to fully analyze usage without available data, assigning a precautionary high risk score.*",
+            "risk_indicators": [
+              ""
+            ],
+            "risk_score": 0.8
+          }
+        },
+        "source_id": "usage_pattern_executor",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ],
+    "billing_charge_executor": [
+      {
+        "data": {
+          "__af_dataclass__": "fraud_detection_workflow:BillingAnalysisResult",
+          "value": {
+            "alert_id": "ALERT-001",
+            "customer_id": 1,
+            "analysis_type": "billing",
+            "findings": "FINDINGS: \n- **Customer Profile:** Danielle Johnson is a Gold loyalty level customer with one active subscription for a 300Mbps internet plan, no roaming enabled, normal service status, a 100GB data cap, and autopay disabled.\n- **Billing Summary:** Danielle has a total due of $208.17 across several invoices. Notable outstanding amounts are seen in invoices: $63.47, $89.56, and $55.14. All others are settled, indicating timely payments historically.\n- **Order History:** There are no recent customer orders available for review.\n\nRISK_INDICATORS:\n1. **Multi-country login alert**: Login attempts from USA and Russia within 2 hours suggest potential account compromise or unauthorized access.\n2. **Payment Pattern**: The outstanding amounts on multiple invoices could correlate with attempts to misuse the account rapidly before payments are made.\n3. **Subscription Stability**: There are no recent changes to the subscription plan, indicating no immediate fraudulent subscription adjustments but emphasizing access behavior.\n\nRISK_SCORE: 0.7\n\nGiven the multi-country login attempts, combined with multiple outstanding invoices, there's heightened risk due to potential unauthorized access leading to specific payment behavior anomalies.",
+            "risk_indicators": [
+              ""
+            ],
+            "risk_score": 0.7
+          }
+        },
+        "source_id": "billing_charge_executor",
+        "target_id": null,
+        "trace_contexts": null,
+        "source_span_ids": null
+      }
+    ]
+  },
+  "shared_state": {},
+  "executor_states": {
+    "analyst_review": {
+      "request_events": {}
+    }
+  },
+  "iteration_count": 1,
+  "max_iterations": 100,
+  "metadata": {
+    "superstep": 1,
+    "checkpoint_type": "superstep",
+    "graph_signature": "090ea8875c5f1dc29ed14dbfe394b502567e050efeaf756bae7b9b9bdac29faa"
+  },
+  "version": "1.0"
+}
